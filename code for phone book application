@@ -1,0 +1,95 @@
+import mysql.connector
+from flask import Flask, render_template, request, redirect
+app = Flask(__name__)
+def connect_to_database():
+    return mysql.connector.connect(
+        host="localhost",
+        user="User name",
+        password="User password",
+        database="database name"
+    )
+@app.route('/index')
+def home():
+    db = connect_to_database()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM table_name")
+    contacts = cursor.fetchall()
+    cursor.close()
+    db.close()
+    return render_template('index.html', contacts=contacts)
+@app.route('/c')
+def home1():
+    db = connect_to_database()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM table_name")
+    contacts = cursor.fetchall()
+    cursor.close()
+    db.close()
+    return render_template('c.html', contacts=contacts)
+@app.route('/search', methods=['GET', 'POST'])
+def search_contact():
+    if request.method == 'POST':
+        name = request.form['name']
+        db = connect_to_database()
+        cursor = db.cursor()
+        sql = "SELECT phone_number, email FROM table_name WHERE name = %s"
+        value = (name,)
+        cursor.execute(sql, value)
+        contact = cursor.fetchone()
+        cursor.close()
+        db.close()
+        return render_template('search.html', name=name, contact=contact)
+    return render_template('search.html')
+@app.route('/add', methods=['GET', 'POST'])
+def add_contact():
+    if request.method == 'POST':
+        name = request.form['name']
+        phone_number = request.form['phone_number']
+        email = request.form['email']
+        db = connect_to_database()
+        cursor = db.cursor()        
+        sql = "INSERT INTO table_name (name, phone_number, email) VALUES (%s, %s, %s)"
+        values = (name, phone_number, email)       
+        cursor.execute(sql, values)
+        db.commit()        
+        cursor.close()
+        db.close()    
+        return redirect('/')    
+    return render_template('add.html')
+@app.route('/delete/<int:contact_id>')
+def delete_contact(contact_id):
+    db = connect_to_database()
+    cursor = db.cursor()   
+    sql = "DELETE FROM table WHERE id = %s"
+    value = (contact_id,)    
+    cursor.execute(sql, value)
+    db.commit()    
+    cursor.close()
+    db.close()   
+    return redirect('/')
+@app.route('/update/<int:contact_id>', methods=['GET', 'POST'])
+def update_contact(contact_id):
+    if request.method == 'POST':
+        new_name = request.form['name']
+        new_phone_number = request.form['phone_number']
+        new_email = request.form['email']        
+        db = connect_to_database()
+        cursor = db.cursor()       
+        sql = "UPDATE table_name SET name = %s, phone_number = %s, email = %s WHERE id = %s"
+        values = (new_name, new_phone_number, new_email, contact_id)       
+        cursor.execute(sql, values)
+        db.commit()        
+        cursor.close()
+        db.close()        
+        return redirect('/')  
+    db = connect_to_database()
+    cursor = db.cursor()  
+    sql = "SELECT * FROM table_name WHERE id = %s"
+    value = (contact_id,)  
+    cursor.execute(sql, value)
+    contact = cursor.fetchone()  
+    cursor.close()
+    db.close() 
+    return render_template('update.html', contact=contact)
+if __name__ == '__main__':
+    app.run(debug=True)
